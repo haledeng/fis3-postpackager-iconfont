@@ -1,0 +1,22 @@
+{
+  "name": "fis3-postpackager-iconfont",
+  "version": "0.2.0",
+  "description": "iconfont",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "fis3",
+    "iconfont"
+  ],
+  "author": {
+    "name": "helondeng",
+    "email": "dhlwust@163.com"
+  },
+  "readmeFilename": "README.md",
+  "license": "BSD",
+  "dependencies": {
+    "font-carrier": "0.0.5"
+  }
+}
