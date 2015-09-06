@@ -76,11 +76,20 @@ module.exports = function (ret, conf, settings, opt) {
         sources = _.toArray(files);
 
     var projectPath = fis.project.getProjectPath(),
-        iconPrefix = settings.classPrefix,
+        iconPrefix = settings.classPrefix || 'i-',
         iconReg = new RegExp('icon-font\\\s' + iconPrefix + '([a-zA-Z0-9\\\-_]*)', 'mg'),
         cleanIconReg = new RegExp('icon-font\\\s' + iconPrefix, 'g');
         // iconReg = new RegExp('[\\\s\\\'\\\"]' + iconPrefix + '([a-zA-Z0-9\\\-_]*)', 'mg'),
         // cleanIconReg = new RegExp('[\\\s\\\'\\\"]' + iconPrefix, 'g');
+
+    if(!settings.svgPath) {
+        fis.log.error('插件 fis3-postpackager-iconfont 中属性 svgPath --- 必须配置（本地svg路径，方便产出字体）！');
+    }
+
+    if(!settings.output) {
+        fis.log.error('插件 fis3-postpackager-iconfont 中属性 output --- 必须配置（字体的产出路径）！');
+    }
+
 
     // 默认的字体文件名是iconfont.ttf
     // 字体文件名没有md5
@@ -92,12 +101,6 @@ module.exports = function (ret, conf, settings, opt) {
     // icon.genarateFonts(settings);
 
     var ignoreLibList = settings.ignore ||  ['zepto', 'badjs', 'mod', 'bj-report', 'tools', 'db'];
-
-    /*
-    * 先根据icon的顺序，生成content
-    * 所有的icon遍历出来后，根据icon查找svg，生成对应的字体问题。
-    * 确保数序，否则content会错乱
-     */
     
     var pages = [],
         ext,
@@ -110,8 +113,9 @@ module.exports = function (ret, conf, settings, opt) {
         content = file.getContent();
         // src 目录下的 html文件
         // ~['.html', '.js', '.tpl']
-        if(~['.html', '.tpl'].indexOf(ext.ext)) {
-            
+        // if(~['.html', '.tpl'].indexOf(ext.ext)) {
+        if(file.isHtmlLike) {
+            // html, tpl, vm
             eachFileIconList = getIconMatches(content, iconReg, cleanIconReg);
             if(eachFileIconList.length > 0) {
                 allIconList = allIconList.concat(eachFileIconList);
@@ -122,8 +126,7 @@ module.exports = function (ret, conf, settings, opt) {
             if(ext.dirname === projectPath ) {
                 pages.push(file);
             }
-        } else if(ext.ext === '.js' && ~~ignoreLibList.indexOf(ext.filename)) {
-            
+        } else if(file.isJsLike && ~~ignoreLibList.indexOf(ext.filename)) {     
             // 基础库忽略查找
             // js 中iconfont查找方式不同 addClass('i-xxx');
             
@@ -141,23 +144,30 @@ module.exports = function (ret, conf, settings, opt) {
         }
     });
 
+    
 
-    // 整个项目中的icon
+    /*
+    * 整个项目中的icon
+    * font和css中的content都是根据这个数组生成出来的，
+    * 数组里面即便有多余的icon（实际不是icon），也能确保css和font对应上
+    * css中的content和font中svg对应的key值都是用数据的index生成的，是一致的。
+     */ 
     allIconList = uniqList(allIconList);
+
+    settings.ttfCdn = settings.ttfCdn || '.';
 
     /*
     * 按需生成字体文件
      */
     var fontsFile = icon.genarateFonts(settings, allIconList);
 
-    var cssContent = icon.generateCss(allIconList, settings.pseClass),
+    var cssContent = icon.generateCss(settings, allIconList, settings.pseClass),
         ttfPath = fontsFile + '.ttf';
-        // ttfPath = settings.output + '.ttf';
 
-    ttfPath = settings.ttfCdn + '/' + ttfPath;
+    ttfPath = settings.ttfCdn + '/' + fontsFile;
 
 
-    cssContent = cssContent.replace('{{$path}}', ttfPath);
+    cssContent = cssContent.replace(/\{\{\$path\}\}/mg, ttfPath);
 
     var cssFileHash = 'font.css';
     // file md5
@@ -165,14 +175,19 @@ module.exports = function (ret, conf, settings, opt) {
         cssFileHash = 'font' + (fis.get('project.md5Connector') || '.')  + _.md5(cssContent, 7) + '.css';
     }
 
-    fs.writeFileSync(path.join(/*path.dirname(*/settings.fontsOutput, cssFileHash), cssContent, 'utf-8');
+    fs.writeFileSync(path.join(settings.fontsOutput, cssFileHash), cssContent, 'utf-8');
 
     // inline 方式引入
     var inlineCss = '<style>\r\n' + cssContent + '\r\n</style>';
+
     // 外链方式引入
     if(settings.cssCdn) {
         inlineCss = '<link rel="stylesheet" type="text/css" href="' + settings.cssCdn + '/' + path.join(settings.output, cssFileHash).replace(/\\/g, '/') + '" />\r\n';
     }
+
+    /*
+    * 页面页面引入css
+     */
     pages.forEach(function(page) {
         var content = page.getContent();
         if(iconfontTag.test(content)) {

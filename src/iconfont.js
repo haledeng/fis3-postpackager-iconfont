@@ -44,7 +44,7 @@ exports.genarateFonts = function (opt, icons) {
             iconContent = generateIconContent(index);
             svgsObj[iconContent] = fs.readFileSync(filePath).toString();
         } else {
-            fis.log.error(filePath + ' svg file does not exist!');
+            fis.log.warning(path.join(fis.project.getProjectPath(), filePath) + ' ------ svg file does not exist!');
         }
 
     });
@@ -75,8 +75,9 @@ exports.genarateFonts = function (opt, icons) {
 
 /*
 * 根据icon生成对应的字体
+* 需要判断实际的svg（正则匹配到了不是icon的表达式）文件是否存在，否则会有多余样式
  */
-exports.generateCss = function (iconNames, pseClass, start, step) {
+exports.generateCss = function (opt, iconNames, pseClass, start, step) {
     var self = this,
         pseudoClass = ~['after', 'before'].indexOf(pseClass) ? pseClass : 'after',
         start = start || 0,
@@ -85,14 +86,18 @@ exports.generateCss = function (iconNames, pseClass, start, step) {
     var content = [],
         iconContent;
     // 字体的引用和每个css的引入路径有关系
+
     content.push('@font-face { ');
     content.push('font-family: "mfont";');
-    content.push('src: url("{{$path}}") format("truetype");}');
+    content.push('src: url("{{$path}}.eot");'); // ie9
+    content.push('src: url("{{$path}}.eot?#iefix") format("embedded-opentype"),'); // ie6-8
+    content.push('url("{{$path}}.woff") format("woff"),');  // chrome、firefox
+    content.push('url("{{$path}}.ttf") format("truetype");}'); // chrome、firefox、opera、Safari, Android, iOS 4.2+
+
     content.push('.icon-font{font-family:"mfont";font-size:16px;font-style:normal;font-weight: normal;font-variant: normal;text-transform: none;line-height: 1;position: relative;-webkit-font-smoothing: antialiased;}');
     iconNames.forEach(function(iconName){
         iconContent = generateIconContent(start++);
-        // iconContent = maps[iconName] || '';
-        if (typeof iconContent !== 'undefined') {
+        if (typeof iconContent !== 'undefined' && fs.existsSync(path.join(opt.svgPath, iconName + '.svg')) ) {
             iconContent = iconContent.replace('&#xf', '\\f');
             content.push('.i-' + iconName + ':' + pseudoClass + '{content: "' + iconContent + '";}');
         }

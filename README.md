@@ -38,6 +38,8 @@ postpackager: fis.plugin('iconfont', {
     // 引用字体样式的cdn前缀，如果配置了该属性，
     // 最终的字体样式会已link方式引入到页面，
     // 否则会inline到页面中的占位符位置 <!--ICONFONT_PLACEHOLDER--> ，或者</head>前
+    // 文件 md5
+    useHash: true,
     cssCdn: 'http://7.url.cn/edu/activity/' + name,
     // 字体content使用的伪类，只能填after或者before，默认为after
     pseClass: 'before' // 伪类名

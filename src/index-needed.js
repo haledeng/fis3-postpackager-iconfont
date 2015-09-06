@@ -169,7 +169,7 @@ module.exports = function (ret, conf, settings, opt) {
     /*
     * 先根据icon的顺序，生成content
     * 所有的icon遍历出来后，根据icon查找svg，生成对应的字体问题。
-    * 确保数序，否则content会错乱
+    * 确保顺序，否则content会错乱
      */
     
     // console.log(res);
@@ -198,11 +198,12 @@ module.exports = function (ret, conf, settings, opt) {
             var iconList = htmlIcons.concat(getHtmlDepsIcons(deepDeps));
             var ttfPath = settings.output + '.ttf';
             if(iconList.length > 0) {
+                var cssContent = icon.generateCss(settings, iconList, settings.pseClass, svgCnt);
 
-                // var cssContent = icon.generateCss(iconList, settings.pseClass);
-                var cssContent = icon.generateCss(iconList, settings.pseClass, svgCnt);
                 svgCnt += iconList.length;
+
                 allIconList = allIconList.concat(iconList);
+
                 ttfPath = settings.ttfCdn + '/' + ttfPath;
                 cssContent = cssContent.replace('{{$path}}', ttfPath);
                 if(iconfontTag.test(content)) {
