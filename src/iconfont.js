@@ -29,6 +29,7 @@ function mkdir(dir) {
 
 /*
 * generate font files
+* 字体文件 md5
 */
 exports.genarateFonts = function (opt, icons) {
     var svgPath = opt.svgPath,
@@ -50,12 +51,26 @@ exports.genarateFonts = function (opt, icons) {
 
     font.setSvg(svgsObj);
 
-    var outputDir = path.dirname(output);
-    mkdir(outputDir);
+    // var outputDir = path.dirname(output);
+    // mkdir(outputDir);
+    mkdir(output);
+
+    var outFontsContent = font.output({}),
+        outFileName = 'iconfont';
+    if(opt.useHash) {
+        outFileName += (fis.get('project.md5Connector') || '.') + fis.util.md5(JSON.stringify(svgsObj), 7);
+    }
+
+    for(var type in outFontsContent){
+        if(outFontsContent.hasOwnProperty(type)) {
+            fs.writeFileSync(output + '/' + outFileName + '.' + type, outFontsContent[type]);
+        }  
+    }
+    return opt.output + '/' + outFileName;
     // 导出字体
-    font.output({
-        path: output
-    });
+    // font.output({
+    //     path: output
+    // });
 };
 
 /*

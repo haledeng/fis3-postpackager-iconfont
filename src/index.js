@@ -83,7 +83,8 @@ module.exports = function (ret, conf, settings, opt) {
         // cleanIconReg = new RegExp('[\\\s\\\'\\\"]' + iconPrefix, 'g');
 
     // 默认的字体文件名是iconfont.ttf
-    settings.output = settings.output + '/iconfont';
+    // 字体文件名没有md5
+    // settings.output = settings.output + '/iconfont';
     var fontOutPath = path.join(projectPath, sources[0].deploy.to);
     settings.fontsOutput = path.join(fontOutPath, settings.output);
 
@@ -126,13 +127,13 @@ module.exports = function (ret, conf, settings, opt) {
             // 基础库忽略查找
             // js 中iconfont查找方式不同 addClass('i-xxx');
             
-            var matches = content.match(/addClass\(\'([^\'\s]*\s)?i-([^\'\s]*)/mg);
+            var matches = content.match(/addClass\([\'\"]([^\'\"\s]*\s)?i-([^\'\"\s]*)/mg);
             if(matches){
                 // iconfont 无法覆盖
                 // 场景 html 标签上已经有 i-a
                 // 依赖的js中有addClass('i-b')，这里没法确保覆盖
                 matches.forEach(function(match, i) {
-                    matches[i] = matches[i].replace(/addClass\(\'([^\'\s]*\s)?i-/, '');
+                    matches[i] = matches[i].replace(/addClass\([\'\"]([^\'\"\s]*\s)?i-/, '');
                 });
                 allIconList = allIconList.concat(matches);
             }
@@ -147,23 +148,30 @@ module.exports = function (ret, conf, settings, opt) {
     /*
     * 按需生成字体文件
      */
-    icon.genarateFonts(settings, allIconList);
+    var fontsFile = icon.genarateFonts(settings, allIconList);
 
-    var cssContent = icon.generateCss(allIconList, settings.pseClass);
-    var ttfPath = settings.output + '.ttf';
+    var cssContent = icon.generateCss(allIconList, settings.pseClass),
+        ttfPath = fontsFile + '.ttf';
+        // ttfPath = settings.output + '.ttf';
+
     ttfPath = settings.ttfCdn + '/' + ttfPath;
 
-    console.log(ttfPath);
 
     cssContent = cssContent.replace('{{$path}}', ttfPath);
 
-    fs.writeFileSync(path.join(path.dirname(settings.fontsOutput), 'font.css'), cssContent, 'utf-8');
+    var cssFileHash = 'font.css';
+    // file md5
+    if(settings.useHash) {
+        cssFileHash = 'font' + (fis.get('project.md5Connector') || '.')  + _.md5(cssContent, 7) + '.css';
+    }
+
+    fs.writeFileSync(path.join(/*path.dirname(*/settings.fontsOutput, cssFileHash), cssContent, 'utf-8');
 
     // inline 方式引入
     var inlineCss = '<style>\r\n' + cssContent + '\r\n</style>';
     // 外链方式引入
     if(settings.cssCdn) {
-        inlineCss = '<link rel="stylesheet" type="text/css" href="' + settings.cssCdn + '/' + path.join(path.dirname(settings.output), 'font.css').replace(/\\/g, '/') + '" />\r\n';
+        inlineCss = '<link rel="stylesheet" type="text/css" href="' + settings.cssCdn + '/' + path.join(settings.output, cssFileHash).replace(/\\/g, '/') + '" />\r\n';
     }
     pages.forEach(function(page) {
         var content = page.getContent();
