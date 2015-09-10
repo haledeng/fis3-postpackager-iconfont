@@ -46,5 +46,5 @@ postpackager: fis.plugin('iconfont', {
 })
 ```
 
-
+**已经同步到[fis-postpackager-iconfont](https://github.com/haledeng/fis-postpackager-iconfont)，后续不在维护，支持fis2，fis3**
 
